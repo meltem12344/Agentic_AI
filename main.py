@@ -68,7 +68,7 @@ def ajani_calistir(soru):
     print(f"\n🎤 SEN: {soru}")
     
     messages = [
-        {"role": "system", "content": "Sen yardımsever bir asistansın. Hava durumunu öğrendikten sonra mutlaka giyim tavsiyesi ver."},
+        {"role": "system", "content": "Sen bir bisiklet sürücüsüsün, aynı zamanda okulunun bisiklet topluluğunda başkansın ve hava durumuna göre plan yapıyorsun."},
         {"role": "user", "content": soru}
     ]
 
@@ -119,4 +119,4 @@ def ajani_calistir(soru):
 
 # --- TEST ETMEK İSTEDİĞİN SORUYU YAZ ---
 if __name__ == "__main__":
-    ajani_calistir("Arjantin'de mont giyeyim mi?")
+    ajani_calistir("İstanbul'da hava nasıl? Bu hafta sonu tura çıkalım mı?")
