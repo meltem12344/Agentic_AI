@@ -12,6 +12,7 @@
 🎤 SEN: İstanbul'da hava nasıl? Bu hafta sonu tura çıkalım mı?
 
 🤖 AI KARARI: 1 adet sorgu yapılması gerekiyor.
+
 [SİSTEM] Istanbul için sahte veri üretiliyor...
 
 ⏳ Sonuçlar AI'ya gönderiliyor, yorum bekleniyor...
