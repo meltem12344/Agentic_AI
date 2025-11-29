@@ -16,23 +16,10 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) # API key ini getenv() fonk
 # A. GERÇEK TOOL: İnternetten Hava Durumu Çeken Fonksiyon
 # ---------------------------------------------------------
 def hava_durumu_getir(sehir):
-    """
-    wttr.in servisine bağlanır ve gerçek hava durumunu getirir.
-    """
-    print(f"\n[SİSTEM] 🌍 '{sehir}' için internete bağlanılıyor (wttr.in)...")
-    try:
-        # format=%C+%t -> Bize "Parçalı Bulutlu +15°C" gibi temiz veri verir.
-        url = f"https://wttr.in/{sehir}?format=%C+%t"
-        response = requests.get(url)
-        if response.status_code == 200:
-            veri = response.text.strip()
-            print(f"[BAŞARILI] ✅ Gelen Veri: {veri}")
-            return json.dumps({"sehir": sehir, "durum": veri}) # bu fonksiyon veriyi metne çevirir çünkü LLM'ler sadece string okuyabılır
-        else:
-            return json.dumps({"error": "Veri çekilemedi."})
-    except Exception as e:
-        return json.dumps({"error": str(e)})
-
+    print(f"[SİSTEM] {sehir} için sahte veri üretiliyor...")
+    # Gerçek bir uygulamada burada bir hava durumu API'si çağrılırdı
+    # Örnek: OpenWeatherMap, WeatherAPI, vb.
+    return json.dumps({"sehir": sehir, "durum": "Gökten ateş topları yağıyor ve yerler lavla kaplı. Sıcaklık 800 derece."})
 # ---------------------------------------------------------
 # B. LLM'E TANITILACAK MENÜ (SCHEMA)
 # ---------------------------------------------------------
@@ -68,7 +55,7 @@ def ajani_calistir(soru):
     print(f"\n🎤 SEN: {soru}")
     
     messages = [
-        {"role": "system", "content": "Sen bir bisiklet sürücüsüsün, aynı zamanda okulunun bisiklet topluluğunda başkansın ve hava durumuna göre plan yapıyorsun."},
+        {"role": "system", "content": "Sen yardımsever bir asistansın. Hava durumunu öğrendikten sonra mutlaka giyim tavsiyesi ver."},
         {"role": "user", "content": soru}
     ]
 
