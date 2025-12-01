@@ -27,5 +27,9 @@
 Ajanın menüsü olarak bahsettiğimiz tool listesi vardı ve içinde her bir yetenek için ayrı bir dict oluşturmuştuk. Bu tool listesine bir tane daha dict ekleyerek yeni bir özellik kazandırmış olduk ajana. 
 Peki bu dict içinde ne gibi ifadeler yer alıyordu bunlara bir göz atalım:
  
- 
+![Resim 1](notes/1.jpg)
+
+![Resim 2](notes/2.jpg)
+
+![Resim 3](notes/3.jpg)
 
