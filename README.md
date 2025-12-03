@@ -163,5 +163,8 @@ Muhakemede sıkıntımızın olmasının iki temel sebebi var:
 
 **2.** Hafızada iki şehir var: Istanbul ve Düzce. "Haftasonu bisiklete çıkacağım kıyafet öner" derken LLM benim nerede olduğumu bilemedi ve risk almaktan kaçınarak genel konuşmayı tercih etti.
 
+**!! Bunun çözümü kodda değişiklik yapmaktan ziyade prompt mühendisliği yaparak LLM'i bir miktar kandırmak. Bunu başka bir branch'te değineceğim.**
+
+**LİNK:**
 
  
