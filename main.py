@@ -1,122 +1,148 @@
-import json # LLM ve Python farklı diller konuşur Python "dict" kullanır, LLM "text" kullanır. JSON bu ikisi arasındaki tercümandır diyebiliriz
+import json
 import os
 import requests
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# 1. Kasayı Aç (Anahtarı Yükle)
-load_dotenv() # .env dosyasını okuyan fonksiyon
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) # API key ini getenv() fonksiyonu ile alırız
-                                                     # benim pc ile OpenAI sunucuları arasındaki köprüdür, hatı açtık ama şu an herhangi bir veri akışı olmuyor.
-
-
-
+# 1. Kasa ve Anahtar
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ---------------------------------------------------------
-# A. GERÇEK TOOL: İnternetten Hava Durumu Çeken Fonksiyon
+# A. TOOLS (PYTHON FONKSİYONLARI)
 # ---------------------------------------------------------
 def hava_durumu_getir(sehir):
-    """
-    wttr.in servisine bağlanır ve gerçek hava durumunu getirir.
-    """
-    print(f"\n[SİSTEM] 🌍 '{sehir}' için internete bağlanılıyor (wttr.in)...")
+    print(f"\n[SİSTEM] 🌍 '{sehir}' için internete bağlanılıyor...")
     try:
-        # format=%C+%t -> Bize "Parçalı Bulutlu +15°C" gibi temiz veri verir.
         url = f"https://wttr.in/{sehir}?format=%C+%t"
         response = requests.get(url)
         if response.status_code == 200:
             veri = response.text.strip()
-            print(f"[BAŞARILI] ✅ Gelen Veri: {veri}")
-            return json.dumps({"sehir": sehir, "durum": veri}) # bu fonksiyon veriyi metne çevirir çünkü LLM'ler sadece string okuyabılır
+            return json.dumps({"sehir": sehir, "durum": veri})
         else:
             return json.dumps({"error": "Veri çekilemedi."})
     except Exception as e:
         return json.dumps({"error": str(e)})
 
-# ---------------------------------------------------------
-# B. LLM'E TANITILACAK MENÜ (SCHEMA)
-# ---------------------------------------------------------
-# LLM yukarıda benim yazdığım kodu okuyamaz ona ne yapabileceğini anlatmamız lazım
-# Aşağıdaki liste aslında LLM'e verdiğimiz bir "menü" gibidir. Yemek listesi gibi düşün ama burada fonksiyonlar var 
-# Bu menüden decsription kısmı, tanımlanan fonksiyonun ne zaman LLM tarafından çağırılacağına karar vermek içindir. 
-# mesela bu açıklama kısmına "sadece marstaki hava durumunu getir" diye bir şey yazılsaydı o zaman "ankara" dediğimizde LLM bu aracı kulanamazdı.
+def cikart(sayi1, sayi2):
+    print(f"\n[HESAP MAKİNESİ] 🧮 {sayi1} - {sayi2} işlemi yapılıyor...")
+    return json.dumps({"sonuc": sayi1 - sayi2})
 
+# ---------------------------------------------------------
+# B. MENÜ (TOOLS SCHEMA)
+# ---------------------------------------------------------
 tools = [
     {
         "type": "function",
         "function": {
-            "name": "hava_durumu_getir", # bu deger yukarıda tanımladıgmız fonksıyon adı ıle tıpatıp aynı olmalı!!
-            "description": "Verilen şehrin anlık hava durumunu internetten öğrenir.",
+            "name": "hava_durumu_getir",
+            "description": "Verilen şehrin anlık hava durumunu öğrenir.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "sehir": {
-                        "type": "string",
-                        "description": "Şehir adı (örn: Istanbul, Ankara)"
-                    }
+                    "sehir": {"type": "string", "description": "Şehir adı"}
                 },
                 "required": ["sehir"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "cikart",
+            "description": "Matematiksel çıkarma işlemi yapar. Bir sayıdan diğerini çıkartır.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sayi1": {"type": "integer"},
+                    "sayi2": {"type": "integer"}
+                },
+                "required": ["sayi1", "sayi2"]
             }
         }
     }
 ]
 
 # ---------------------------------------------------------
-# C. AJAN DÖNGÜSÜ (BEYİN)
+# C. AJAN DÖNGÜSÜ (GÜNCELLENDİ: ARTIK HAFIZAYI DIŞARIDAN ALIYOR)
 # ---------------------------------------------------------
-def ajani_calistir(soru):
-    print(f"\n🎤 SEN: {soru}")
+# Artık 'messages' listesini parametre olarak alıyoruz!
+def ajani_calistir(soru, chat_gecmisi):
     
-    messages = [
-        {"role": "system", "content": "Sen yardımsever bir asistansın. Hava durumunu öğrendikten sonra mutlaka giyim tavsiyesi ver."},
-        {"role": "user", "content": soru}
-    ]
+    # 1. Kullanıcının sorusunu hafızaya ekle
+    chat_gecmisi.append({"role": "user", "content": soru})
 
-    # 1. TUR: LLM Düşünüyor (Tool kullanmalı mıyım?)
+    # 2. İLK TUR
     response = client.chat.completions.create(
-        model="gpt-4o-mini",  # <-- DİKKAT: En ucuz ve hızlı model!
-        messages=messages,
+        model="gpt-4o-mini",
+        messages=chat_gecmisi, # Güncel hafızayı gönderiyoruz
         tools=tools
     )
     
     response_message = response.choices[0].message
     tool_calls = response_message.tool_calls
 
-    # 2. TUR: Eğer Tool İstediyse Çalıştır
+    # 3. KARAR ANI
     if tool_calls:
-        print(f"🤖 AI KARARI: {len(tool_calls)} adet sorgu yapılması gerekiyor.")
-        
-        # Hafızaya AI'nın isteğini ekle
-        messages.append(response_message)
+        print(f"🤖 AI KARARI: {len(tool_calls)} adet işlem yapılacak.")
+        chat_gecmisi.append(response_message) # Modelin isteğini hafızaya kaydet
 
         for tool_call in tool_calls:
             function_name = tool_call.function.name
             function_args = json.loads(tool_call.function.arguments)
-            
-            if function_name == "hava_durumu_getir":
-                # Python fonksiyonunu biz çalıştırıyoruz
-                function_response = hava_durumu_getir(
-                    sehir=function_args.get("sehir")
-                )
-                
-                # Sonucu hafızaya 'tool' rolüyle ekle
-                messages.append({
-                    "tool_call_id": tool_call.id,
-                    "role": "tool",
-                    "name": function_name,
-                    "content": function_response,
-                })
+            function_response = None
 
-        # 3. TUR: Sonuçlarla Birlikte Final Cevap
-        print("\n⏳ Sonuçlar AI'ya gönderiliyor, yorum bekleniyor...")
+            if function_name == "hava_durumu_getir":
+                function_response = hava_durumu_getir(sehir=function_args.get("sehir"))
+            elif function_name == "cikart":
+                function_response = cikart(sayi1=function_args.get("sayi1"), sayi2=function_args.get("sayi2"))
+            
+            # Sonucu hafızaya ekle
+            chat_gecmisi.append({
+                "tool_call_id": tool_call.id,
+                "role": "tool",
+                "name": function_name,
+                "content": function_response,
+            })
+
+        print("\n⏳ Sonuçlar AI'ya gönderiliyor...")
         final_response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=messages,
+            messages=chat_gecmisi,
         )
-        print(f"\n🤖 FİNAL CEVAP:\n{final_response.choices[0].message.content}")
+        ai_cevabi = final_response.choices[0].message.content
+        print(f"\n🤖 AJAN: {ai_cevabi}")
+        
+        # FİNAL CEVABI DA HAFIZAYA EKLE (Kritik Nokta!)
+        chat_gecmisi.append({"role": "assistant", "content": ai_cevabi})
+        
     else:
-        print(f"🤖 CEVAP: {response_message.content}")
+        # Eğer tool kullanmadıysa direkt cevabı yaz ve kaydet
+        ai_cevabi = response_message.content
+        print(f"\n🤖 AJAN: {ai_cevabi}")
+        chat_gecmisi.append({"role": "assistant", "content": ai_cevabi})
 
-# --- TEST ETMEK İSTEDİĞİN SORUYU YAZ ---
+# ---------------------------------------------------------
+# D. SONSUZ DÖNGÜ (CHAT LOOP)
+# ---------------------------------------------------------
 if __name__ == "__main__":
-    ajani_calistir("Arjantin'de mont giyeyim mi?")
+    print("--- AJAN BAŞLATILDI (Çıkmak için 'çık' yazın) ---")
+    
+    # 1. HAFIZA BURADA BAŞLIYOR (Döngünün Dışında!)
+    # Böylece döngü her döndüğünde sıfırlanmıyor.
+    hafiza = [
+        {"role": "system", "content": "Sen yardımsever bir asistansın. Sohbeti hatırla."}
+    ]
+
+    while True:
+        # 2. Kullanıcıdan girdi al
+        kullanici_girdisi = input("\nSEN: ")
+        
+        # 3. Çıkış kontrolü
+        if kullanici_girdisi.lower() in ["çık", "exit", "kapat"]:
+            print("Görüşürüz! 👋")
+            break
+            
+        # 4. Ajanı mevcut hafıza ile çağır
+        # Dikkat: 'hafiza' listesi her turda büyüyerek geri gelecek
+        ajani_calistir(kullanici_girdisi, hafiza)
